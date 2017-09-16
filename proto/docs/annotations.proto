@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package docs;
+import "google/protobuf/descriptor.proto";
+
+////////////////////////////////////////////////////////////////////////////////
+// option (docs.file) = {
+//     summary: "This is a summary of a file"
+//     overview: "This is a more detailed overview"
+// };
+////////////////////////////////////////////////////////////////////////////////
+
+extend google.protobuf.FileOptions {
+    google.api.Documentation file = 16135437;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// message Message {
+//     option (docs.message) = {
+//         summary: "This is a summary of a service"
+//         overview: "This is a more detailed overview"
+//     };
+//     string field_name = 1 [(docs.field) = { summary: "This is a summary of a field." }];
+// }
+////////////////////////////////////////////////////////////////////////////////
+
+extend google.protobuf.MessageOptions {
+    google.api.Documentation message = 16135437;
+}
+
+extend google.protobuf.FieldOptions {
+    google.api.Documentation field = 16135437;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// service Service {
+//     option (docs.service) = {
+//         summary: "This is a summary of a service"
+//         overview: "This is a more detailed overview"
+//     };
+//     rpc Method(Request) returns (Reply) {
+//         option (docs.method) = {
+//             summary: "This is a summary of a method"
+//             overview: "This is a more detailed overview"
+//         };
+//     }
+// }
+////////////////////////////////////////////////////////////////////////////////
+
+extend google.protobuf.ServiceOptions {
+    google.api.Documentation service = 16135437;
+}
+
+extend google.protobuf.MethodOptions {
+    google.api.Documentation method = 16135437;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+extend google.protobuf.EnumOptions {
+    google.api.Documentation enum = 16135437;
+}
+
+extend google.protobuf.EnumValueOptions {
+    google.api.Documentation enum_value = 16135437;
+}
+
+////////////////////////////////////////////////////////////////////////////////

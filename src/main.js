@@ -65,8 +65,11 @@ function flattenProtoSpec(spec, collection) {
         ch.key = ch.name;
         ch.name = spec.name ? `${spec.name}.${ch.name}` : ch.name;
         ch = flattenProtoSpec(ch, collection);
+        if (ch.isNamespace && ch.options) {
+            spec.options = Object.assign(spec.options || {}, ch.options);
+        }
     });
-    spec.messages = spec.messages.filter(n => !n.isNamespace);
+    spec.messages = (spec.messages || []).filter(n => !n.isNamespace);
     if (spec !== collection) {
         (spec.services || []).forEach(svc => {
             svc.key = svc.name;
