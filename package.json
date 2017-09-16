@@ -1,0 +1,43 @@
+{
+  "name": "@vroomlabs/grpc-docs",
+  "version": "1.0.10",
+  "description": "Command line utility to launch or debug Google's Extensible Service Proxy",
+  "author": "vroomlabs",
+  "homepage": "https://github.com/vroomlabs/grpc-docs#readme",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vroomlabs/grpc-docs/issues"
+  },
+  "main": "index.js",
+  "scripts": {
+    "npm-push": "npm version patch && npm publish -tag latest --access public && git push"
+  },
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vroomlabs/grpc-docs.git"
+  },
+  "keywords": [
+    "Google",
+    "grpc",
+    "Generator",
+    "Documentation",
+    "Markdown",
+    "API"
+  ],
+  "bin": {
+    "grpc-docs": "./bin/grpc-docs"
+  },
+  "dependencies": {
+    "@vroomlabs/gsdk-deploy": "^1.0.35",
+    "jsdoc-api": "^4.0.0",
+    "protobufjs": "^6.8.0",
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.1.1",
+    "eslint-plugin-node": "^5.1.0"
+  }
+}
