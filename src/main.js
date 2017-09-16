@@ -38,6 +38,9 @@ const options = {
     path: [path.resolve(protoPath)]
 };
 
+const docPath = path.join(process.cwd(), process.argv[3] || './docs/');
+if (!fs.existsSync(docPath)) fs.mkdirSync(docPath);
+
 function expandFiles(parent, exp, arr) {
     let all = fs.readdirSync(parent, {flag: 'r'})
         .filter(x => x !== 'google' && x !== 'docs' && x !== 'node_modules');
@@ -168,33 +171,43 @@ let gitname = gitrepo.match(/\/([^/]*)\.git$/)[1];
 
 let pkg = require(path.resolve(process.cwd(), './package.json'));
 
-console.log(`\n# ${gitname}`);
+let fwrite = {
+    _lines: [],
+    out: function(line) { this._lines.push(line); },
+    save: function(fname) { fs.writeFileSync(fname, this._lines.join('\n')); this._lines = []; }
+};
 
-console.log('\n-----------------------');
-console.log('\n##Summary');
-console.log('\n' + pkg.description);
-console.log(`\n**Repository**: ${gitrepo}`);
-console.log('\n`git clone ' + gitrepo + '`');
-console.log(`\n**Entry Point**: \`${pkg.main || 'unspecified'}\``);
+fwrite.out(`\n# ${gitname}`);
 
-console.log('\n-----------------------');
-console.log('\n##Useful Links');
-console.log('* [Repository](https://bitbucket.org/tdalabs/' + querystring.escape(gitname) + ')')
-if (pkg.bugs) console.log('* [Issue Tracking](' + pkg.bugs + ')');
-if (pkg.homepage) console.log('* [Documentation](' + pkg.homepage + ')');
+fwrite.out('\n-----------------------');
+fwrite.out('\n##Summary');
+fwrite.out('\n' + pkg.description);
+fwrite.out(`\n**Repository**: ${gitrepo}`);
+fwrite.out('\n`git clone ' + gitrepo + '`');
+fwrite.out(`\n**Entry Point**: \`${pkg.main || 'unspecified'}\``);
 
-console.log('\n-----------------------');
-console.log('\n##Environments');
+fwrite.out('\n-----------------------');
+fwrite.out('\n##Useful Links');
+//fwrite.out('* [Repository](https://bitbucket.org/tdalabs/' + querystring.escape(gitname) + ')')
+if (jsonAPI && jsonAPI.length > 0) fwrite.out('* [API Specification](docs/API.md)');
+if (jsdocs && jsdocs.length > 0) fwrite.out('* [Code Documentation](docs/CODE.md)');
+if (pkg.bugs) fwrite.out('* [Issue Tracking](' + pkg.bugs + ')');
+if (pkg.homepage) fwrite.out('* [Documentation](' + pkg.homepage + ')');
+
+fwrite.out('\n-----------------------');
+fwrite.out('\n##Environments');
 function outenv(name, env) {
-    console.log('\n### ' + name.toLowerCase());
-    console.log('* **Service Name**: ' + env.name);
-    console.log('* **Project Name**: ' + env['google-project']);
-    console.log('* **Hosted URL**: [' + env.host + '](https://' + env.host + ')');
-    console.log(`* **Endpoint**: [${env.endpointFormat}](https://console.cloud.google.com/endpoints/api/${env.endpointFormat}/overview?project=${env['google-project']})`);
-    console.log('* **API Keys**: [Get an API Key](https://console.cloud.google.com/apis/credentials?project=' + env['google-project'] + ')');
+    fwrite.out('\n### ' + name.toLowerCase());
+    fwrite.out('* **Service Name**: ' + env.name);
+    fwrite.out('* **Project Name**: ' + env['google-project']);
+    fwrite.out('* **Hosted URL**: [' + env.host + '](https://' + env.host + ')');
+    if (env.endpointFormat && jsonAPI && jsonAPI.length > 0) {
+        fwrite.out(`* **Endpoint**: [${env.endpointFormat}](https://console.cloud.google.com/endpoints/api/${env.endpointFormat}/overview?project=${env['google-project']})`);
+        fwrite.out('* **API Keys**: [Get an API Key](https://console.cloud.google.com/apis/credentials?project=' + env['google-project'] + ')');
+    }
     let loglink = `https://console.cloud.google.com/logs/viewer?project=${env['google-project']}&resource=container&logName=` +
         querystring.escape(`projects/${env['google-project']}/logs/${env.name}`);
-    console.log('* **Log Viewer**: [View Recent Logs](' + loglink + ')');
+    fwrite.out('* **Log Viewer**: [View Recent Logs](' + loglink + ')');
 }
 if (environment.prod || environment.production) {
     outenv((environment.prod ? 'prod' : 'production'), environment.prod || environment.production);
@@ -202,49 +215,62 @@ if (environment.prod || environment.production) {
 Object.keys(environment).filter(n => (n !== 'prod' && n !== 'production'))
     .forEach(n => outenv(n, environment[n]));
 
-console.log(`\n##Contact Information\n`);
-Object.keys(authors).forEach(a => console.log('* ' + a));
-console.log('');
+fwrite.out('\n-----------------------');
+fwrite.out(`\n##Contact Information\n`);
+Object.keys(authors).forEach(a => fwrite.out('* ' + a));
+fwrite.out('');
 
-console.log('\n-----------------------');
-console.log('\n##Development Information');
-console.log('    npm install --progress=false');
+fwrite.out('\n-----------------------');
+fwrite.out('\n##Development Information');
+fwrite.out('    npm install --progress=false');
 if (pkg.scripts && pkg.scripts.babel)
-    console.log('    npm run babel');
-console.log('    npm start');
+    fwrite.out('    npm run babel');
+fwrite.out('    npm start');
 if (pkg.scripts && pkg.scripts.esp) {
-    console.log('\nYou **must have** a json google cloud key with access to the dev endpoint stored in the following path:');
-    console.log('\n    ./keys/serviceaccount.json\n');
+    fwrite.out('\nYou **must have** a json google cloud key with access to the dev endpoint stored in the following path:');
+    fwrite.out('\n    ./keys/serviceaccount.json\n');
 
-    console.log('\nIn another terminal session run:');
-    console.log('\n    npm run esp');
-    console.log('\nView the service via [127.0.0.1:8000](http://127.0.0.1:8000)');
+    fwrite.out('\nIn another terminal session run:');
+    fwrite.out('\n    npm run esp');
+    fwrite.out('\nView the service via [127.0.0.1:8000](http://127.0.0.1:8000)');
 }
 
-console.log('\n###environment variables:');
+fwrite.out('\n###environment variables:');
 let envKeys = Object.keys(allenv);
 envKeys.sort().forEach(k => {
-    console.log(`* **${k}** = \`${allenv[k] || '[no-default]'}\``);
+    fwrite.out(`* **${k}** = \`${allenv[k] || '[no-default]'}\``);
 });
 
-console.log('\n###npm run scripts:');
+fwrite.out('\n###npm run scripts:');
 Object.keys(pkg.scripts || {})
-    .forEach(k => console.log(`\`${k}\``));
-//    .forEach(k => console.log(`\n**${k}** \n\n    ${pkg.scripts[k]}`));
+    .forEach(k => fwrite.out(`\`${k}\``));
+//    .forEach(k => fwrite.out(`\n**${k}** \n\n    ${pkg.scripts[k]}`));
 
-console.log('\n###npm dependencies:');
+fwrite.out('\n###npm dependencies:');
 Object.keys(pkg.dependencies || {})
-    .forEach(k => console.log(`\`${k}\``));
+    .forEach(k => fwrite.out(`\`${k}\``));
 
-console.log('\n###npm dev-dependencies:');
+fwrite.out('\n###npm dev-dependencies:');
 Object.keys(pkg.devDependencies || {})
-    .forEach(k => console.log(`\`${k}\``));
+    .forEach(k => fwrite.out(`\`${k}\``));
+
+fwrite.save('README.md');
 
 // API - HELPERS
 function toCamelCase(name) {
     return (name||'').replace(/_[a-z]/gi, function(m) {
         return m[1].toUpperCase();
     });
+}
+function writeDocs(type, prefix, options) {
+    if (options && options[`(docs.${type}).summary`]) {
+        options[`(docs.${type}).summary`].split('\n')
+            .forEach(line => fwrite.out(`${prefix}${line}`));
+    }
+    if (options && options[`(docs.${type}).overview`]) {
+        options[`(docs.${type}).overview`].split('\n')
+            .forEach(line => fwrite.out(`${prefix}${line}`));
+    }
 }
 function typeNameToExample(root, name) {
     switch(name) {
@@ -260,9 +286,9 @@ function typeNameToExample(root, name) {
         case 'fixed64': return "'0.0', // fixed64 as string";
         case 'sfixed32': return '0.0, // sfixed32';
         case 'sfixed64': return "'0.0', // sfixed64 as string";
-        case 'bool': return "false // boolean";
-        case 'string': return "'string'";
-        case 'bytes': return "'0==' // Base-64 Encoded String?";
+        case 'bool': return "false, // boolean";
+        case 'string': return "'string',";
+        case 'bytes': return "'0==', // bytes";
         default:
             return msgNameToJson(root, name);
     }
@@ -274,12 +300,19 @@ function msgNameToJson(root, name) {
     msg.fields.forEach(fld => {
         let jsName = toCamelCase(fld.name);
         example[jsName] = typeNameToExample(root, fld.type);
+
+        if (typeof example[jsName] === 'string' && fld.options && fld.options[`(docs.field).summary`]) {
+            if (!example[jsName].match(/\/\//)) example[jsName] += ' // ';
+            else example[jsName] += ' - ';
+            example[jsName] += fld.options[`(docs.field).summary`].replace(/\n/g, ' ');
+        }
+
         if (fld.rule === 'repeated') {
             example[jsName] = [example[jsName]];
         }
         else if (fld.rule === 'map') {
             let type = example[jsName];
-            let ktype = typeNameToExample(root, fld.keytype).replace(/, \/\/.*$/, '');
+            let ktype = typeNameToExample(root, fld.keytype).split(',')[0];
             example[jsName] = {};
             example[jsName][ktype] = type;
         }
@@ -287,48 +320,105 @@ function msgNameToJson(root, name) {
     return example;
 }
 if (jsonAPI && jsonAPI.length > 0) {
-    console.log('\n-----------------------');
-    console.log('\n##API Specification');
+    fwrite.out('\n##API Specification');
+    fwrite.out('\n-----------------------');
 
     jsonAPI.forEach(pfs => {
-        console.log(`\n **Location**: \`${pfs.filename}\``);
+        writeDocs('file', '\n> ', pfs.proto.options);
+        fwrite.out(`\n **Location**: \`${pfs.filename}\``);
         pfs.proto.services.forEach(svc => {
-            console.log(`\n### ${svc.key} Members`);
+            fwrite.out(`\n### ${svc.key} Service`);
+            writeDocs('service', '\n> ', svc.options);
             Object.keys(svc.rpc || {}).forEach(member => {
                 let cls = svc.rpc[member];
                 if (!cls || !cls.options) return;
-                console.log(`\n#### ${member}:`);
+                fwrite.out(`\n#### ${member}:`);
+                writeDocs('method', '\n> ', cls.options);
 
                 let doc = jsdocs.filter(c => !c.async && c.kind === 'function'
                 && c.meta.filename.toLowerCase() === (path.basename(pfs.filename, '.proto') + '.js').toLowerCase()
                 && c.name.toLowerCase() === member.toLowerCase())[0];
-                if (doc && doc.meta)
-                    console.log(`\n**Implementation**: ${doc.meta.filename} (line ${doc.meta.lineno})`);
                 if (doc && doc.description)
-                    console.log(`\n> ${doc.description}`);
+                    fwrite.out(`\n> ${doc.description}`);
+                if (doc && doc.meta)
+                    fwrite.out(`\n**Implementation**: ${doc.meta.filename} (line ${doc.meta.lineno})`);
 
                 let mthd = null;
                 'get,put,post,delete,patch'.split(',')
                     .filter(method => cls.options['(google.api.http).' + method])
-                    .forEach(method => console.log(`\n**HTTP Binding**: \`${mthd = method.toUpperCase()} ${cls.options['(google.api.http).' + method]}\``));
-                console.log(`\n**Request: ${cls.request}**`);
-                console.log('\n    ' + JSON.stringify(msgNameToJson(pfs.proto, cls.request), null, 2)
-                        .split('\n').join('\n    ').replace(/"/g, ''));
+                    .forEach(method => fwrite.out(`\n**HTTP Binding**: \`${mthd = method.toUpperCase()} ${cls.options['(google.api.http).' + method]}\``));
+
+                fwrite.out(`\n**Request: ${cls.request}**`);
+                fwrite.out('```javascript');
+                fwrite.out(JSON.stringify(msgNameToJson(pfs.proto, cls.request), null, 4)
+                    .replace(/"/g, '').replace(/,$/gm, ''));
+                fwrite.out('```');
+
                 if (mthd !== 'GET' && mthd !== 'DELETE') {
                     let body = cls.options['(google.api.http).body'] || '*';
                     if (body === '*') {
-                        console.log(`\n*Note*: Pass this as the request body.`);
+                        fwrite.out(`\n*Note*: Pass this as the request body.`);
                     } else {
-                        console.log(`\n*Note*: Pass only the **${body}** field in the request body.`);
+                        fwrite.out(`\n*Note*: Pass only the **${body}** field in the request body.`);
                     }
+                } else {
+                    fwrite.out(`\n*Note*: Pass the above fields as query string parameters.`);
                 }
 
-                console.log(`\n**Response: ${cls.response}**`);
-                console.log('\n    ' + JSON.stringify(msgNameToJson(pfs.proto, cls.response), null, 2)
-                        .split('\n').join('\n    ').replace(/"/g, ''));
+                fwrite.out(`\n**Response: ${cls.response}**`);
+                let msg = pfs.proto.messages.filter(m => m.key === cls.response)[0];
+                if (msg) {
+                    writeDocs('method', '\n> ', cls.options);
+                    fwrite.out('```javascript');
+                    fwrite.out(JSON.stringify(msgNameToJson(pfs.proto, cls.response), null, 4)
+                        .replace(/"/g, '').replace(/,$/gm, ''));
+                    fwrite.out('```');
+                }
             });
         });
     });
+    fwrite.out('\n-----------------------');
+    fwrite.save(path.resolve(docPath, 'API.md'));
 }
-console.log('\n-----------------------');
-//console.log(`\nGenerated on ${new Date().toLocaleString()}`);
+
+if (jsdocs && jsdocs.length > 0) {
+    fwrite.out('\n##Code Documentation');
+    fwrite.out('\n-----------------------');
+
+    let files = {};
+    jsdocs.forEach(c => {
+        if (c.kind === 'function' && !c.async && c.scope === 'global' && c.meta) {
+            let pth = path.join(c.meta.path, c.meta.filename);
+            if (pth)
+                (files[pth] = files[pth] || []).push(c);
+        }
+    });
+    Object.keys(files).sort().forEach(file => {
+        fwrite.out('\n## ' + path.basename(file));
+        fwrite.out(`\n\`${path.dirname(file)}\``);
+        let funcs = {};
+        files[file].forEach(f => funcs[f.name] = f);
+        Object.keys(funcs).sort().forEach(fname => {
+            let fun = funcs[fname];
+            if ((!fun.params || fun.params.length === 0) && fun.meta.code
+                && fun.meta.code.paramnames && fun.meta.code.paramnames.length > 0) {
+                fun.params = fun.meta.code.paramnames.map(n => { return {name:n}; });
+            }
+
+            fwrite.out(`\n### ${fun.name}(${(fun.params || []).map(p => p.name).join(', ')})`);
+            if (fun.description)
+                fwrite.out(`> ${fun.description}`)
+            fwrite.out(`\n**Kind**: ${fun.scope} ${fun.kind}`);
+            if (fun.params && fun.params.length) {
+                fwrite.out('\n| Param | Type | Description |\n| --- | --- | --- |');
+                fun.params.forEach(p => {
+                    let type = (((p.type||{}).names || [])[0] || 'object');
+                    fwrite.out(`| ${p.name} | \`${type}\` | ${p.description || ''} |`)
+                })
+            }
+            fwrite.out('');
+        });
+        fwrite.out('\n-----------------------');
+    });
+    fwrite.save(path.resolve(docPath, 'CODE.md'));
+}
