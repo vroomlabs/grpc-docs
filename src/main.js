@@ -32,10 +32,6 @@ const child_process = require('child_process');
 const YAML = require('yamljs');
 const jsdocapi = require('jsdoc-api');
 
-const parser = require('protobufjs/cli/pbjs/sources/proto');
-const jsonoutput = require('protobufjs/cli/pbjs/targets/json');
-
-
 const protoPath = process.argv[2] || './proto/';
 const options = {
     source: 'proto',
@@ -85,16 +81,22 @@ function flattenProtoSpec(spec, collection) {
 const sourceFiles = expandFiles(protoPath, /\.proto$/i, []);
 const deployFiles = expandFiles('./', /^deploy.ya?ml$/i, []);
 
-const jsonAPI = sourceFiles.map(file => {
-    let protoSpec = JSON.parse(jsonoutput(parser([file], options), options));
-    protoSpec.messages = (protoSpec.messages || []).filter(m => m.name !== 'google');
-    protoSpec.services = protoSpec.services || [];
-    protoSpec = flattenProtoSpec(protoSpec, protoSpec);
-    return {
-        filename: file,
-        proto: protoSpec
-    };
-});
+let jsonAPI = [];
+if (sourceFiles.length) {
+    const parser = require('protobufjs/cli/pbjs/sources/proto');
+    const jsonoutput = require('protobufjs/cli/pbjs/targets/json');
+
+    jsonAPI = sourceFiles.map(file => {
+        let protoSpec = JSON.parse(jsonoutput(parser([file], options), options));
+        protoSpec.messages = (protoSpec.messages || []).filter(m => m.name !== 'google');
+        protoSpec.services = protoSpec.services || [];
+        protoSpec = flattenProtoSpec(protoSpec, protoSpec);
+        return {
+            filename: file,
+            proto: protoSpec
+        };
+    });
+}
 //fs.writeFileSync('spec.json', JSON.stringify(jsonAPI, null, 2));
 
 let jsdocs = jsdocapi.explainSync({ files: 'src/**/*.js', destination: 'api-docs' });
@@ -235,8 +237,7 @@ console.log('\n###npm dev-dependencies:');
 Object.keys(pkg.devDependencies || {})
     .forEach(k => console.log(`\`${k}\``));
 
-console.log('\n-----------------------');
-console.log('\n##API Specification');
+// API - HELPERS
 function toCamelCase(name) {
     return (name||'').replace(/_[a-z]/gi, function(m) {
         return m[1].toUpperCase();
@@ -282,45 +283,49 @@ function msgNameToJson(root, name) {
     });
     return example;
 }
-jsonAPI.forEach(pfs => {
-    console.log(`\n **Location**: \`${pfs.filename}\``);
-    pfs.proto.services.forEach(svc => {
-        console.log(`\n### ${svc.key} Members`);
-        Object.keys(svc.rpc || {}).forEach(member => {
-            let cls = svc.rpc[member];
-            if (!cls || !cls.options) return;
-            console.log(`\n#### ${member}:`);
+if (jsonAPI && jsonAPI.length > 0) {
+    console.log('\n-----------------------');
+    console.log('\n##API Specification');
 
-            let doc = jsdocs.filter(c => !c.async && c.kind === 'function'
-            && c.meta.filename.toLowerCase() === (path.basename(pfs.filename, '.proto') + '.js').toLowerCase()
-            && c.name.toLowerCase() === member.toLowerCase())[0];
-            if (doc && doc.meta)
-                console.log(`\n**Implementation**: ${doc.meta.filename} (line ${doc.meta.lineno})`);
-            if (doc && doc.description)
-                console.log(`\n> ${doc.description}`);
+    jsonAPI.forEach(pfs => {
+        console.log(`\n **Location**: \`${pfs.filename}\``);
+        pfs.proto.services.forEach(svc => {
+            console.log(`\n### ${svc.key} Members`);
+            Object.keys(svc.rpc || {}).forEach(member => {
+                let cls = svc.rpc[member];
+                if (!cls || !cls.options) return;
+                console.log(`\n#### ${member}:`);
 
-            let mthd = null;
-            'get,put,post,delete,patch'.split(',')
-                .filter(method => cls.options['(google.api.http).' + method])
-                .forEach(method => console.log(`\n**HTTP Binding**: \`${mthd = method.toUpperCase()} ${cls.options['(google.api.http).' + method]}\``));
-            console.log(`\n**Request: ${cls.request}**`);
-            console.log('\n    ' + JSON.stringify(msgNameToJson(pfs.proto, cls.request), null, 2)
-                    .split('\n').join('\n    ').replace(/"/g, ''));
-            if (mthd !== 'GET' && mthd !== 'DELETE') {
-                let body = cls.options['(google.api.http).body'] || '*';
-                if (body === '*') {
-                    console.log(`\n*Note*: Pass this as the request body.`);
-                } else {
-                    console.log(`\n*Note*: Pass only the **${body}** field in the request body.`);
+                let doc = jsdocs.filter(c => !c.async && c.kind === 'function'
+                && c.meta.filename.toLowerCase() === (path.basename(pfs.filename, '.proto') + '.js').toLowerCase()
+                && c.name.toLowerCase() === member.toLowerCase())[0];
+                if (doc && doc.meta)
+                    console.log(`\n**Implementation**: ${doc.meta.filename} (line ${doc.meta.lineno})`);
+                if (doc && doc.description)
+                    console.log(`\n> ${doc.description}`);
+
+                let mthd = null;
+                'get,put,post,delete,patch'.split(',')
+                    .filter(method => cls.options['(google.api.http).' + method])
+                    .forEach(method => console.log(`\n**HTTP Binding**: \`${mthd = method.toUpperCase()} ${cls.options['(google.api.http).' + method]}\``));
+                console.log(`\n**Request: ${cls.request}**`);
+                console.log('\n    ' + JSON.stringify(msgNameToJson(pfs.proto, cls.request), null, 2)
+                        .split('\n').join('\n    ').replace(/"/g, ''));
+                if (mthd !== 'GET' && mthd !== 'DELETE') {
+                    let body = cls.options['(google.api.http).body'] || '*';
+                    if (body === '*') {
+                        console.log(`\n*Note*: Pass this as the request body.`);
+                    } else {
+                        console.log(`\n*Note*: Pass only the **${body}** field in the request body.`);
+                    }
                 }
-            }
 
-            console.log(`\n**Response: ${cls.response}**`);
-            console.log('\n    ' + JSON.stringify(msgNameToJson(pfs.proto, cls.response), null, 2)
-                    .split('\n').join('\n    ').replace(/"/g, ''));
+                console.log(`\n**Response: ${cls.response}**`);
+                console.log('\n    ' + JSON.stringify(msgNameToJson(pfs.proto, cls.response), null, 2)
+                        .split('\n').join('\n    ').replace(/"/g, ''));
+            });
         });
     });
-});
-
+}
 console.log('\n-----------------------');
 //console.log(`\nGenerated on ${new Date().toLocaleString()}`);
