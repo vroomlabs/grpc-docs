@@ -40,7 +40,7 @@ const options = {
 
 function expandFiles(parent, exp, arr) {
     let all = fs.readdirSync(parent, {flag: 'r'})
-        .filter(x => x !== 'google' && x !== 'node_modules');
+        .filter(x => x !== 'google' && x !== 'docs' && x !== 'node_modules');
     all.filter(i => i.match(exp))
         .forEach(i => arr.push(path.join(parent, i)));
     all.filter(i => fs.lstatSync(path.join(parent, i)).isDirectory())
