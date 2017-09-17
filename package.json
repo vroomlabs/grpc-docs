@@ -32,12 +32,13 @@
   },
   "dependencies": {
     "@vroomlabs/gsdk-deploy": "^1.0.35",
+    "grpc": "^1.6.0",
     "jsdoc-api": "^4.0.0",
-    "protobufjs": "^6.8.0",
+    "precinct": "^3.8.0",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "eslint": "^4.1.1",
+    "eslint": "^4.7.0",
     "eslint-plugin-node": "^5.1.0"
   }
 }

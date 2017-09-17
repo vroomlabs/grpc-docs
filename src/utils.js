@@ -27,43 +27,24 @@
 const fs = require('fs');
 const path = require('path');
 
-let fwrite = {
-    _lines: [],
-    out: function(line) { this._lines.push(line); },
-    save: function(fname) { fs.writeFileSync(fname, this._lines.join('\n')); this._lines = []; },
-    print: function() { console.log(this._lines.join('\n')); }
+module.exports = {
+    expandFiles: function expandFiles(parent, exp, arr, excluded)
+    {
+        let all = fs.readdirSync(parent, {flag: 'r'})
+            .filter(x => excluded.indexOf(x) < 0);
+        all.filter(i => i.match(exp))
+            .forEach(i => arr.push(path.join(parent, i)));
+        all.filter(i => fs.lstatSync(path.join(parent, i)).isDirectory())
+            .forEach(i => expandFiles(path.join(parent, i), exp, arr, excluded))
+        return arr;
+    },
+    replaceInText: function replaceInText(input, getValue) {
+        return input.replace(
+            /\$(([a-z0-9]+(_[a-z0-9]+)*)|(\(([\w\-_]+)\))|({([\w\-_]+)}))/gi,
+            function (text, g1, m1, g3, g4, m2, g6, m3) {
+                let name = (m1 || m2 || m3).toUpperCase();
+                return getValue(name) || `$(${name})`;
+            }
+        );
+    }
 };
-
-let git = (require('./gitdoc'))();
-let deploy = (require('./deploydoc'))('./deploy.yaml');
-let docker = (require('./dockerdoc'))('./Dockerfile');
-let jsdoc = (require('./jsdoc'))('./src/');
-let protos = (require('./protodoc'))('./proto/');
-
-let pkg = require(path.resolve(process.cwd(), './package.json'));
-let fullname = git.name;
-if (pkg.name && git.name.toLowerCase() !== pkg.name.toLowerCase())
-    fullname += ` (${pkg.name})`;
-fwrite.out(`\n# ${fullname}`);
-
-git.writeSummary(fwrite);
-
-git.writeContacts(fwrite);
-
-deploy.writeEnvironments(fwrite);
-
-jsdoc.writeEnvironment(fwrite, [deploy.getEnvSettings(), docker.env]);
-
-docker.writeDevInfo(fwrite);
-
-jsdoc.writeExampleDocs(fwrite);
-
-protos.writeApiDocs(fwrite);
-
-jsdoc.writeHierarchy(fwrite);
-
-jsdoc.writeSourceDocs(fwrite);
-
-fwrite.out('\n-----------------------');
-fwrite.save('README.md');
-fwrite.print();
