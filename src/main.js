@@ -188,9 +188,9 @@ fwrite.out(`\n**Entry Point**: \`${pkg.main || 'unspecified'}\``);
 
 fwrite.out('\n-----------------------');
 fwrite.out('\n##Useful Links');
-//fwrite.out('* [Repository](https://bitbucket.org/tdalabs/' + querystring.escape(gitname) + ')')
-if (jsonAPI && jsonAPI.length > 0) fwrite.out('* [API Specification](docs/API.md)');
-if (jsdocs && jsdocs.length > 0) fwrite.out('* [Code Documentation](docs/CODE.md)');
+fwrite.out('* [Repository](https://bitbucket.org/tdalabs/' + querystring.escape(gitname) + ')')
+//if (jsonAPI && jsonAPI.length > 0) fwrite.out('* [API Specification](docs/API.md)');
+//if (jsdocs && jsdocs.length > 0) fwrite.out('* [Code Documentation](docs/CODE.md)');
 if (pkg.bugs) fwrite.out('* [Issue Tracking](' + pkg.bugs + ')');
 if (pkg.homepage) fwrite.out('* [Documentation](' + pkg.homepage + ')');
 
@@ -255,7 +255,7 @@ Object.keys(pkg.devDependencies || {})
     .forEach(k => fwrite.out(`\`${k}\``));
 
 fwrite.out('\n-----------------------');
-fwrite.save('README.md');
+//fwrite.save('README.md');
 
 // API - HELPERS
 function toCamelCase(name) {
@@ -379,47 +379,6 @@ if (jsonAPI && jsonAPI.length > 0) {
         });
     });
     fwrite.out('\n-----------------------');
-    fwrite.save(path.resolve(docPath, 'API.md'));
+    //fwrite.save(path.resolve(docPath, 'API.md'));
 }
-
-if (jsdocs && jsdocs.length > 0) {
-    fwrite.out('\n##Code Documentation');
-    fwrite.out('\n-----------------------');
-
-    let files = {};
-    jsdocs.forEach(c => {
-        if (c.kind === 'function' && !c.async && c.scope === 'global' && c.meta) {
-            let pth = path.join(c.meta.path, c.meta.filename);
-            if (pth)
-                (files[pth] = files[pth] || []).push(c);
-        }
-    });
-    Object.keys(files).sort().forEach(file => {
-        fwrite.out('\n## ' + path.basename(file));
-        fwrite.out(`\n\`${path.dirname(file)}\``);
-        let funcs = {};
-        files[file].forEach(f => funcs[f.name] = f);
-        Object.keys(funcs).sort().forEach(fname => {
-            let fun = funcs[fname];
-            if ((!fun.params || fun.params.length === 0) && fun.meta.code
-                && fun.meta.code.paramnames && fun.meta.code.paramnames.length > 0) {
-                fun.params = fun.meta.code.paramnames.map(n => { return {name:n}; });
-            }
-
-            fwrite.out(`\n### ${fun.name}(${(fun.params || []).map(p => p.name).join(', ')})`);
-            if (fun.description)
-                fwrite.out(`> ${fun.description}`)
-            fwrite.out(`\n**Kind**: ${fun.scope} ${fun.kind}`);
-            if (fun.params && fun.params.length) {
-                fwrite.out('\n| Param | Type | Description |\n| --- | --- | --- |');
-                fun.params.forEach(p => {
-                    let type = (((p.type||{}).names || [])[0] || 'object');
-                    fwrite.out(`| ${p.name} | \`${type}\` | ${p.description || ''} |`)
-                })
-            }
-            fwrite.out('');
-        });
-        fwrite.out('\n-----------------------');
-    });
-    fwrite.save(path.resolve(docPath, 'CODE.md'));
-}
+fwrite.save('README.md');
