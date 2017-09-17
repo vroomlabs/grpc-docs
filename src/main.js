@@ -254,6 +254,7 @@ fwrite.out('\n###npm dev-dependencies:');
 Object.keys(pkg.devDependencies || {})
     .forEach(k => fwrite.out(`\`${k}\``));
 
+fwrite.out('\n-----------------------');
 fwrite.save('README.md');
 
 // API - HELPERS
