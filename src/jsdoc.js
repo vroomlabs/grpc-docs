@@ -69,6 +69,16 @@ function writeHierarchy(fwrite, root, srcMap) {
     });
 }
 
+function writeUrlRefs(fwrite, urls) {
+    if (urls.length > 0) {
+        fwrite.out('\n-----------------------');
+        fwrite.out('\n##External References');
+        fwrite.out('');
+        urls.sort().forEach(url => fwrite.out(`* \`${url}\``));
+        fwrite.out('');
+    }
+}
+
 function writeFunction(fwrite, root, file, fun, addSource) {
     if ((!fun.params || fun.params.length === 0) && fun.meta.code
         && fun.meta.code.paramnames && fun.meta.code.paramnames.length > 0) {
@@ -156,13 +166,18 @@ function writeSourceDocs(fwrite, root, jsdocs, examplesOnly) {
     }
 }
 
-module.exports = function inspectJavascript(rootPath) {
-
-    rootPath = path.resolve(rootPath || process.cwd());
-    rootPath = rootPath.replace(/\/$/, '') + '/';
+module.exports = function inspectJavascript(rootPaths) {
 
     const srcMap = {};
-    const codeFiles = expandFiles(process.argv[2] || rootPath, /\.jsx?$/i, [], ['node_modules']);
+    const codeFiles = [];
+
+    rootPaths = rootPaths || process.cwd();
+    rootPaths.split(';').forEach(rootPath => {
+        if (!rootPath) return;
+        expandFiles(rootPath, /\.jsx?$/i, codeFiles, ['node_modules']);
+    });
+
+    let jsdocs = jsdocapi.explainSync({files: codeFiles, destination: './api-docs'});
 
     codeFiles.forEach(file => {
         let deps = precinct(file, {amd: {skipLazyLoaded: true}, es6: {mixedImports: true}});
@@ -176,28 +191,39 @@ module.exports = function inspectJavascript(rootPath) {
     });
 
     const env = {};
+    const urls = [];
     codeFiles.forEach(file => {
+        if (path.basename(file) === 'examples.js')
+            return;
         let src = fs.readFileSync(file).toString();
-        src.replace(/process\.env\.(\w+)(\s*\|\|\s*((["']([^'"]*)["'])|(\d+(\.\d+)?)))?/g,
+        src.replace(/process\.env\.(\w+)(\s*\|\|\s*((["'`]([^"'`]*)["'`])|(\d+(\.\d+)?)))?/g,
             (orig, key, g2) => {
                 let m, def;
-                if (g2 && (m = g2.match(/["']([^'"]*)["']/)))
+                if (g2 && (m = g2.match(/["'`]([^"'`]*)["'`]/)))
                     def = m[1];
                 else if (g2 && (m = g2.match(/(\d+(\.\d+)?)/)))
                     def = m[1];
                 env[key.toUpperCase()] = def;
                 return orig;
-            })
+            });
+        src.replace(/(["'`]https?:\/\/\w+.*?)[,;]?$/gm,
+            (orig, value) => {
+                value = value.replace(/["`]/g,"'").replace(/\s+/g, '');
+                if (urls.indexOf(value) < 0)
+                    urls.push(value);
+                return orig;
+            });
     });
 
-    let jsdocs = jsdocapi.explainSync({files: rootPath + '**/*.js', destination: './api-docs'});
     //fs.writeFileSync('./jsdocs.json', JSON.stringify(jsdocs, null, 2));
 
     return {
-        root: rootPath,
+        root: path.resolve(process.cwd()).replace(/\/$/, '') + '/',
         env: env,
+        urls: urls,
         dependencies: srcMap,
         jsdocs: jsdocs,
+        writeUrlRefs: function(fwrite) { return writeUrlRefs(fwrite, urls); },
         writeSourceDocs: function(fwrite) { return writeSourceDocs(fwrite, this.root, this.jsdocs, false); },
         writeExampleDocs: function(fwrite) { return writeSourceDocs(fwrite, this.root, this.jsdocs, true); },
         writeHierarchy: function(fwrite) { return writeHierarchy(fwrite, this.root, this.dependencies); },

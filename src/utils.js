@@ -32,13 +32,14 @@ module.exports = {
         if (!fs.existsSync(parent)) {
             return arr;
         }
+        parent = path.resolve(parent);
 
         let all = fs.readdirSync(parent, {flag: 'r'})
             .filter(x => excluded.indexOf(x) < 0);
         all.filter(i => i.match(exp))
             .forEach(i => arr.push(path.join(parent, i)));
         all.filter(i => fs.lstatSync(path.join(parent, i)).isDirectory())
-            .forEach(i => expandFiles(path.join(parent, i), exp, arr, excluded))
+            .forEach(i => expandFiles(path.join(parent, i), exp, arr, excluded));
 
         return arr;
     },

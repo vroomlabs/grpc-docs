@@ -161,7 +161,7 @@ module.exports = function generateProtoDocs(protoPath) {
             protoSpec.messages.forEach(m => add2map(m));
             //fs.writeFileSync('api.json', JSON.stringify(protoSpec, null, 2));
             return {
-                filename: file,
+                filename: path.resolve(file).substr(process.cwd().length + 1),
                 proto: protoSpec
             };
         });

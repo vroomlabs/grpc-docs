@@ -37,7 +37,7 @@ let fwrite = {
 let git = (require('./gitdoc'))();
 let deploy = (require('./deploydoc'))('./deploy.yaml');
 let docker = (require('./dockerdoc'))('./Dockerfile');
-let jsdoc = (require('./jsdoc'))('./src/');
+let jsdoc = (require('./jsdoc'))('./src/;./lib/;./config/');
 let protos = (require('./protodoc'))('./proto/');
 
 let pkg = require(path.resolve(process.cwd(), './package.json'));
@@ -53,6 +53,8 @@ git.writeContacts(fwrite);
 deploy.writeEnvironments(fwrite);
 
 jsdoc.writeEnvironment(fwrite, [deploy.getEnvSettings(), docker.env]);
+
+jsdoc.writeUrlRefs(fwrite);
 
 docker.writeDevInfo(fwrite);
 
