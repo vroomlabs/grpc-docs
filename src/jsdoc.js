@@ -32,13 +32,14 @@ const precinct = require('precinct').paperwork;
 const expandFiles = require('./utils').expandFiles;
 
 let pkg = require(path.join(process.cwd(), 'package.json'));
+let pthStartOffset = path.resolve(process.cwd()).replace(/\/$/,'').length + 1;
 
 function renderDep(fwrite, basePath, srcMap, depth, fname, recurse) {
     let prefix = '';
     for (let ix = 0; ix < depth; ix++) prefix += '    ';
 
     if (fname.substring(0, basePath.length) === basePath) {
-        fwrite.out(`${prefix}* ${path.dirname(fname.substr(basePath.length))}/**${path.basename(fname)}**`);
+        fwrite.out(`${prefix}* ${path.dirname(fname.substr(pthStartOffset))}/**${path.basename(fname)}**`);
         if (recurse > 0) {
             let children = srcMap[fname];
             delete srcMap[fname];
@@ -137,7 +138,6 @@ function writeSourceDocs(fwrite, root, jsdocs, examplesOnly) {
             fwrite.out(examplesOnly ? '\n##Code Examples' : '\n##Code Documentation');
         }
 
-        let pthStartOffset = path.resolve(process.cwd()).length;
         let first = true;
         Object.keys(files).sort().forEach(file => {
             if (!first) {

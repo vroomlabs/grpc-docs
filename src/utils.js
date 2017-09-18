@@ -28,14 +28,18 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = {
-    expandFiles: function expandFiles(parent, exp, arr, excluded)
-    {
+    expandFiles: function expandFiles(parent, exp, arr, excluded) {
+        if (!fs.existsSync(parent)) {
+            return arr;
+        }
+
         let all = fs.readdirSync(parent, {flag: 'r'})
             .filter(x => excluded.indexOf(x) < 0);
         all.filter(i => i.match(exp))
             .forEach(i => arr.push(path.join(parent, i)));
         all.filter(i => fs.lstatSync(path.join(parent, i)).isDirectory())
             .forEach(i => expandFiles(path.join(parent, i), exp, arr, excluded))
+
         return arr;
     },
     replaceInText: function replaceInText(input, getValue) {

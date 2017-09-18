@@ -24,6 +24,7 @@
  * Created by ... I don't want my name on it :/
  * #WorstCodeEver, but hey, it's gets the monkey off my back.
  ******************************************************************************/
+const fs = require('fs');
 const path = require('path');
 const expandFiles = require('./utils').expandFiles;
 
@@ -63,6 +64,7 @@ function typeNameToExample(root, name) {
         case 'string': return "'string',";
         case 'bytes': return "'0==', // bytes";
         case 'google.protobuf.Empty': return {};
+        case 'google.protobuf.Struct': return { 'any': 'any' };
         default:
             return msgNameToJson(root, name);
     }
@@ -70,12 +72,20 @@ function typeNameToExample(root, name) {
 
 function msgNameToJson(root, name) {
     if (name === 'google.protobuf.Empty') return {};
-    let msg = root.messages.filter(m => m.key === name)[0];
-    if (!msg) return null;
+    if (name === 'google.protobuf.Struct') return { 'any': 'any' };
+    let msg = root.messageMap[name];
+    if (!msg) {
+        msg = root.enums.filter(m => m.key === name)[0];
+        if (!msg) {
+            console.error(`unable to find: ${name} in ${Object.keys(root.messageMap).join(',')}`);
+            return null;
+        }
+        return `'${msg.values.map(v => `${v.name}`).join('|')}'`;
+    }
     let example = {};
     msg.fields.forEach(fld => {
         let jsName = toCamelCase(fld.name);
-        example[jsName] = typeNameToExample(root, fld.type);
+        example[jsName] = typeNameToExample(root, fld.type) || fld.type;
 
         if (typeof example[jsName] === 'string' && fld.options && fld.options[`(docs.field).summary`]) {
             if (!example[jsName].match(/\/\//)) example[jsName] += ' // ';
@@ -88,7 +98,7 @@ function msgNameToJson(root, name) {
         }
         else if (fld.rule === 'map') {
             let type = example[jsName];
-            let ktype = typeNameToExample(root, fld.keytype).split(',')[0];
+            let ktype = (typeNameToExample(root, fld.keytype) || fld.keytype).split(',')[0];
             example[jsName] = {};
             example[jsName][ktype] = type;
         }
@@ -99,7 +109,7 @@ function msgNameToJson(root, name) {
 function flattenProtoSpec(spec, collection) {
     if (!spec.isNamespace) {
         collection.messages.push(spec);
-        return spec;
+        //return spec;
     }
     (spec.messages || []).forEach(ch => {
         ch.key = ch.name;
@@ -115,6 +125,11 @@ function flattenProtoSpec(spec, collection) {
             svc.key = svc.name;
             svc.name = spec.name ? `${spec.name}.${svc.name}` : svc.name;
             collection.services.push(svc);
+        });
+        (spec.enums || []).forEach(enu => {
+            enu.key = enu.name;
+            enu.name = spec.name ? `${spec.name}.${enu.name}` : enu.name;
+            collection.enums.push(enu);
         });
     }
     return spec;
@@ -139,7 +154,12 @@ module.exports = function generateProtoDocs(protoPath) {
 
             protoSpec.messages = (protoSpec.messages || []).filter(m => m.name !== 'google');
             protoSpec.services = protoSpec.services || [];
+            protoSpec.enums = protoSpec.enums || [];
             protoSpec = flattenProtoSpec(protoSpec, protoSpec);
+            protoSpec.messageMap = {};
+            let add2map = m => { protoSpec.messageMap[m.key] = m; };
+            protoSpec.messages.forEach(m => add2map(m));
+            //fs.writeFileSync('api.json', JSON.stringify(protoSpec, null, 2));
             return {
                 filename: file,
                 proto: protoSpec
@@ -200,14 +220,12 @@ module.exports = function generateProtoDocs(protoPath) {
                         }
 
                         fwrite.out(`\n**Response: ${cls.response}**`);
-                        let msg = pfs.proto.messages.filter(m => m.key === cls.response)[0];
-                        if (msg) {
-                            writeDocs(fwrite, 'method', '\n> ', cls.options);
-                            fwrite.out('```javascript');
-                            fwrite.out(JSON.stringify(msgNameToJson(pfs.proto, cls.response), null, 4)
-                                .replace(/"/g, '').replace(/,$/gm, ''));
-                            fwrite.out('```');
-                        }
+                        let msg = pfs.proto.messageMap[cls.response];
+                        if (msg) writeDocs(fwrite, 'method', '\n> ', cls.options);
+                        fwrite.out('```javascript');
+                        fwrite.out(JSON.stringify(msgNameToJson(pfs.proto, cls.response), null, 4)
+                            .replace(/"/g, '').replace(/,$/gm, ''));
+                        fwrite.out('```');
                     });
                 });
             });
