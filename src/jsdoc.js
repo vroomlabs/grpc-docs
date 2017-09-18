@@ -206,7 +206,7 @@ module.exports = function inspectJavascript(rootPaths) {
                 env[key.toUpperCase()] = def;
                 return orig;
             });
-        src.replace(/(["'`]https?:\/\/\w+.*?)[,;]?$/gm,
+        src.replace(/(["'`]https?:\/\/.*?)[,;]?$/gm,
             (orig, value) => {
                 value = value.replace(/["`]/g,"'").replace(/\s+/g, '');
                 if (urls.indexOf(value) < 0)

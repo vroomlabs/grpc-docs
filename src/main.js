@@ -34,13 +34,22 @@ let fwrite = {
     print: function() { console.log(this._lines.join('\n')); }
 };
 
-let git = (require('./gitdoc'))();
-let deploy = (require('./deploydoc'))('./deploy.yaml');
-let docker = (require('./dockerdoc'))('./Dockerfile');
-let jsdoc = (require('./jsdoc'))('./src/;./lib/;./config/');
-let protos = (require('./protodoc'))('./proto/');
-
 let pkg = require(path.resolve(process.cwd(), './package.json'));
+
+let config = Object.assign({
+    deploy: './deploy.yaml',
+    docker: './Dockerfile',
+    source: './src/;./lib/;./config/',
+    proto: './proto/',
+    output: './README.md'
+}, pkg['grpc-docs'] || {});
+
+let git = (require('./gitdoc'))();
+let deploy = (require('./deploydoc'))(config.deploy);
+let docker = (require('./dockerdoc'))(config.docker);
+let jsdoc = (require('./jsdoc'))(config.source);
+let protos = (require('./protodoc'))(config.proto);
+
 let fullname = git.name;
 if (pkg.name && git.name.toLowerCase() !== pkg.name.toLowerCase())
     fullname += ` (${pkg.name})`;
@@ -67,5 +76,5 @@ jsdoc.writeHierarchy(fwrite);
 jsdoc.writeSourceDocs(fwrite);
 
 fwrite.out('\n-----------------------');
-fwrite.save('README.md');
-fwrite.print();
+fwrite.save(config.output);
+//fwrite.print();
