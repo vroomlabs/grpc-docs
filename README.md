@@ -40,11 +40,11 @@ If you are not already using gsdk-deploy, create the following `deploy.yaml` fil
 Modify package.json to include any or all of the following:
 
     "grpc-docs": {
-        "source": "./config/;./api/;"   // search path for all source files, default = /src;/config
-        "deploy": './deploy.yaml',      // where to find the above deploy.yaml file
-        "docker": './Dockerfile',       // where to find the associated docker file for run/env info
-        "proto": './proto/',            // where to find proto files (if any)
-        "output": './README.md'         // where to write the output documentation file
+        "source": "./config/;./src/;"   // search path for all source files, default = /src;/config
+        "deploy": "./deploy.yaml",      // where to find the above deploy.yaml file
+        "docker": "./Dockerfile",       // where to find the associated docker file for run/env info
+        "proto":  "./proto/",           // where to find proto files (if any)
+        "output": "./README.md"         // where to write the output documentation file
     }
 
 ## Customizing Output:
