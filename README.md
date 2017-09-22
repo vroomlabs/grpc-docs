@@ -4,7 +4,16 @@ Auto-generator for markdown documentation
 
 ## Usage:
 
-    grpc-docs [proto-file-directory]
+    $ npm install --save-dev @vroomlabs/grpc-docs
+    ./node_modules/.bin/grpc-docs
+
+## Scripts:
+
+package.json script:
+
+    "scripts": {
+        "doc": "grpc-docs"
+    }
 
 ## Requirements:
 
