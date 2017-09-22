@@ -47,3 +47,17 @@ Modify package.json to include any or all of the following:
         "output": './README.md'         // where to write the output documentation file
     }
 
+## Customizing Output:
+
+Currently there is only one thing that can be manually written and automatically injected into the output, examples. Create a file named "examples.js" anywhere in the source search path. Export each example as a function from that source file.
+
+### examples.js
+    /**
+     * A simple example method exists inside a file named "examples.js"
+     * @param {string} text - A parameter we use in this example
+     */
+    function exampleMethodName(text) {
+        // do something.
+    }
+
+
