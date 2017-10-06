@@ -37,7 +37,7 @@ module.exports = function () {
 
     let remote = child_process.execSync('git remote -v').toString().split('\n');
 
-    let repo = remote.map(l => (l.match(/git@[\w-:./]+\.git/) || [])[0]).filter(l => l)[0]
+    let repo = remote.map(l => (l.match(/@[\w-:./]+\.git/) || [])[0]).filter(l => l)[0]
         || remote.map(l => (l.match(/https:\/\/[\w-:./]+\.git/) || [])[0]).filter(l => l)[0];
 
     let name = repo.match(/\/([^/]*)\.git$/)[1];
