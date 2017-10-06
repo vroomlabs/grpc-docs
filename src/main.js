@@ -44,6 +44,17 @@ let config = Object.assign({
     output: './README.md'
 }, pkg['grpc-docs'] || {});
 
+let args = {};
+try {
+    for (let ix = 2; ix < process.argv.length; ix++) {
+        let m = process.argv[ix].match(/^--?([\w-]+)(=.*)?$/);
+        if (m) {
+            args[m[1]] = m[2] || true;
+        }
+    }
+}
+catch(ex) { /* no-op */ }
+
 let git = (require('./gitdoc'))();
 let deploy = (require('./deploydoc'))(config.deploy);
 let docker = (require('./dockerdoc'))(config.docker);
@@ -69,12 +80,16 @@ docker.writeDevInfo(fwrite);
 
 jsdoc.writeExampleDocs(fwrite);
 
-protos.writeApiDocs(fwrite);
+if (!args['no-api']) {
+    protos.writeApiDocs(fwrite);
+}
+if (!args['no-code']) {
+    jsdoc.writeHierarchy(fwrite);
 
-jsdoc.writeHierarchy(fwrite);
-
-jsdoc.writeSourceDocs(fwrite);
-
+    if (!args['no-source']) {
+        jsdoc.writeSourceDocs(fwrite);
+    }
+}
 fwrite.out('\n-----------------------');
 fwrite.save(config.output);
 //fwrite.print();
