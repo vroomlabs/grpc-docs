@@ -1,6 +1,6 @@
 {
   "name": "@vroomlabs/grpc-docs",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Command line utility to launch or debug Google's Extensible Service Proxy",
   "author": "vroomlabs",
   "homepage": "https://github.com/vroomlabs/grpc-docs#readme",
