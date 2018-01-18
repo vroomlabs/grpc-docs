@@ -73,7 +73,7 @@ function typeNameToExample(root, name) {
 function msgNameToJson(root, name) {
     if (name === 'google.protobuf.Empty') return {};
     if (name === 'google.protobuf.Struct') return { 'any': 'any' };
-    let msg = root.messageMap[name];
+    let msg = root.messageMap[name] || root.messageMap[name.split('.').slice(-1)[0]];
     if (!msg) {
         msg = root.enums.filter(m => m.key === name)[0];
         if (!msg) {
